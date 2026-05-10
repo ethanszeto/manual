@@ -68,8 +68,6 @@ const state = {
     seed: Math.floor(Math.random() * 1000000000000),
     tempAllObjs: {},
     gravity: 0,
-    bgPhotosO1: {},
-    bgPhotosO2: {},
   },
   paused: false,
   camera: undefined,
@@ -96,8 +94,6 @@ let paused = false;
 let now;
 let delta;
 let bgPhotoDimensions = { x: 1728, y: 993 };
-let bgPhotosO1 = {};
-let bgPhotosO2 = {};
 
 const dialogue = `
 > Do you ever feel as if you're going no where?

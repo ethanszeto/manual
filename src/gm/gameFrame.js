@@ -1,5 +1,5 @@
 const setUpGameFrame = (canvas, world) => {
-  player = new Player(canvasWidth / 2, canvasHeight / 2, world.blockSize, world.blockSize * 2, rgba(255, 255, 255, 0.5));
+  player = new Player(canvasWidth / 2, canvasHeight / 2, world.blockSize * 1.5, world.blockSize * 2, rgba(255, 255, 255, 0.5));
   playerSprite = new MovingAnimation(player.x - 40, player.y - 40, 100, 100, [
     "birdright00",
     "birdright01",
@@ -14,8 +14,6 @@ const setUpGameFrame = (canvas, world) => {
   blockSizeMarginH = world.blockSize * marginH;
   blockSizeMarginV = world.blockSize * marginV;
 
-  bgPhotosO1[bgObjHash(0, 0)] = new TiledBackground(0, 0, bgPhotoDimensions.x, bgPhotoDimensions.y, "bg1");
-  bgPhotosO2[bgObjHash(0, 0)] = new TiledBackground(0, 0, bgPhotoDimensions.x, bgPhotoDimensions.y, "b1");
   uiStatisticsInitialize();
 };
 
@@ -96,57 +94,28 @@ const render = (canvas, world) => {
     ////////////////////////////////////////////////////////////////////////////////
     // Render elements
 
-    /* TODO
-    Find a way to abstract background tilings
-    Find a way to prevent duplicates in bgPhotos upon insertion
-    */
-    let haze1 = new MovingBox(
-      camera.x - halfCanvasWidth,
-      camera.y - halfCanvasHeight,
-      canvasWidth,
-      canvasHeight,
-      rgba(123, 153, 103, 0.1)
-    );
-
-    generateBgObjs(haze1, bgPhotosO1, bgPhotoDimensions, visibleMinX, visibleMinY, visibleMaxX, visibleMaxY, "bg1");
-    generateBgObjs(haze1, bgPhotosO2, bgPhotoDimensions, visibleMinX, visibleMinY, visibleMaxX, visibleMaxY, "b1");
-
-    for (const key in bgPhotosO1) {
-      const targetSpeedX = player.speedX !== 0 ? (player.speedX < 0 ? -0.1 : 0.1) : 0;
-      const targetSpeedY = jumpState !== 0 ? -0.1 : 0.1;
-
-      bgPhotosO1[key].speedX = lerp(bgPhotosO1[key].speedX, targetSpeedX, smootherT);
-      bgPhotosO1[key].speedY = lerp(bgPhotosO1[key].speedY, targetSpeedY, smootherT);
-    }
-
-    for (const key in bgPhotosO2) {
-      const targetSpeedX = player.speedX !== 0 ? (player.speedX < 0 ? -0.05 : 0.05) : 0;
-      const targetSpeedY = jumpState !== 0 ? -0.05 : 0.05;
-
-      bgPhotosO2[key].speedX = lerp(bgPhotosO2[key].speedX, targetSpeedX, smootherT);
-      bgPhotosO2[key].speedY = lerp(bgPhotosO2[key].speedY, targetSpeedY, smootherT);
-    }
-
-    haze1.update();
-
-    //draw bg here
-    printObj(bgPhotosO1);
-    printObj(bgPhotosO2);
+    // Layer 3 (deepest) → haze → layer 2; L2/L3 use different parallax.
+    renderParallaxBackgroundBehindWorld();
 
     new MovingBox(
       camera.x - halfCanvasWidth,
       camera.y - halfCanvasHeight,
       canvasWidth,
       canvasHeight,
-      rgba(123, 153, 103, 0.15)
+      rgba(123, 153, 103, 0.15),
     ).update();
 
     printList(worldRowsList);
 
     let text = new BaseText(400, 400, rgba(255, 255, 255, 1), "30px Arial", "Bleak World");
     text.update();
-    playerSprite.speedX = player.speedX;
-    playerSprite.speedY = player.speedY;
+    const moveX = player.speedX;
+    const moveY = player.speedY;
+    integratePlayerBoxWithWorldCollisions(player, worldRowsList, moveX, moveY, world.blockSize * 0.25);
+    player.speedX = 0;
+    player.speedY = 0;
+    playerSprite.speedX = 0;
+    playerSprite.speedY = 0;
 
     camera.x = bezier(t, camera.x, camera.x + (player.x - camera.x) * 0.5, camera.x + (player.x - camera.x) * 0.5, player.x);
     camera.y = lerp(camera.y, player.y, smootherT);
@@ -154,6 +123,8 @@ const render = (canvas, world) => {
 
     playerSprite.update();
     player.update();
+    playerSprite.x = player.x - 40;
+    playerSprite.y = player.y - 40;
 
     UIstatistics.frames.updateText(`Frames Played: ${framesPlayed}`);
     UIstatistics.avgFrameRate.updateText(`Average FrameRate: ${(1000 / (totalDelta / framesPlayed)).toFixed(3)}`);
@@ -164,10 +135,10 @@ const render = (canvas, world) => {
       `Window Bounds: [(x: ${(player.x - canvasWidth / 2).toFixed(1)}, y: ${(player.y - canvasHeight / 2).toFixed(1)}), (x: ${(
         player.x +
         canvasWidth / 2
-      ).toFixed(1)}, y: ${(player.y + canvasHeight / 2).toFixed(1)})]`
+      ).toFixed(1)}, y: ${(player.y + canvasHeight / 2).toFixed(1)})]`,
     );
     UIstatistics.loadedBounds.updateText(
-      `Loaded Bounds [(x: ${visibleMinX}, y: ${visibleMinY}), (x: ${visibleMaxX}, y: ${visibleMaxY})]`
+      `Loaded Bounds [(x: ${visibleMinX}, y: ${visibleMinY}), (x: ${visibleMaxX}, y: ${visibleMaxY})]`,
     );
     printUIStatistics();
   }
